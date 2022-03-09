@@ -6,12 +6,17 @@ const {hashPassword, createToken} = require("./utils");
 
 const User = require('./models/user.model')
 const jwtDecode = require("jwt-decode");
+const mongoose = require("mongoose");
 
 const app = express();
-app.user(cors())
+app.use(cors())
 app.use(bodyParser.urlencoded({extended: true}))
 app.use(bodyParser.json())
 
+
+app.get('/api/healthcheck', (req, res) => {
+    return res.status(200).json({"message": "Working"})
+})
 
 app.post('/api/signup', async (req, res) => {
 
@@ -26,19 +31,16 @@ app.post('/api/signup', async (req, res) => {
         const existingEmail = await User.findOne({
             email: userData.email
         }).lean()
-
         if (existingEmail) {
             return res.status(400).json({message: 'Email already exists'})
         }
 
         const newUser = new User(userData)
-        const savedUser = newUser.save()
-
+        const savedUser = await newUser.save()
         if (savedUser) {
             const token = createToken(savedUser)
             const decodedToken = jwtDecode(token)
             const expiresAt = decodedToken.exp
-
             const {firstName, lastName, email, role} = savedUser;
             const userInfo = {
                 firstName, lastName, email, role
@@ -49,7 +51,7 @@ app.post('/api/signup', async (req, res) => {
             })
 
         } else {
-            return res.status(400).json({message: 'There was a problem creating your acount'})
+            return res.status(400).json({message: 'There was a problem creating your account'})
         }
 
 
@@ -59,5 +61,18 @@ app.post('/api/signup', async (req, res) => {
 
 })
 
+async function startServer() {
 
-app.listen(8080)
+    try {
+        await mongoose.connect(process.env.MONGO_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        })
+    } catch (err) {
+        console.log("Error connecting to DB", err)
+    }
+    app.listen(process.env.PORT)
+    console.log(`Server started on http://localhost:${process.env.PORT} `)
+}
+
+startServer()

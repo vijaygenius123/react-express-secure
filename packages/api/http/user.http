@@ -1,0 +1,9 @@
+POST http://localhost:8080/api/signup
+Content-Type: application/json
+
+{
+  "firstName": "Vijayaraghavan",
+  "lastName": "Sundararaman",
+  "email": "vijaygenius123@gmail.com",
+  "password": "Passw0rd"
+}
