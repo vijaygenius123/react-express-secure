@@ -18,6 +18,51 @@ app.get('/api/healthcheck', (req, res) => {
     return res.status(200).json({"message": "Working"})
 })
 
+app.post('/api/authenticate', async (req, res) => {
+
+    try {
+        const {email, password} = req.body;
+
+        const user = await User.findOne({
+            email
+        }).lean()
+
+        if (!user) {
+            return res.status(403).json({
+                'message': 'Wrong email or password.'
+            })
+        }
+
+        const passwordValid = await verifyPassword(
+            password,
+            user.password
+        );
+
+        if (passwordValid) {
+            const {password, bio, ...rest} = user;
+            const userInfo = Object.assign({}, {...rest});
+            const token = createToken(userInfo);
+            const decodedToken = jwtDecode(token);
+            const expiresAt = decodedToken.exp;
+
+            res.json({
+                message: 'Authentication successful!',
+                token,
+                userInfo,
+                expiresAt
+            });
+        } else {
+            res.status(403).json({
+                message: 'Wrong email or password.'
+            });
+        }
+    } catch (err) {
+        return res
+            .status(400)
+            .json({message: 'Something went wrong.'});
+    }
+})
+
 app.post('/api/signup', async (req, res) => {
 
     try {
